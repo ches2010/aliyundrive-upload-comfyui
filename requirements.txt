@@ -1,0 +1,4 @@
+# requirements.txt
+requests>=2.31.0
+qrcode>=7.4.2
+Pillow>=9.5.0
