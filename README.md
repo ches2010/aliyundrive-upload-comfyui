@@ -48,58 +48,106 @@
     - （可选）`file_prefix`：可自定义文件名前缀，方便对上传的图片进行归类。
 3. **运行工作流**：点击“Queue Prompt”运行工作流，节点将自动上传图片到指定的阿里云盘文件夹，并返回`file_id`和阿里云盘文件链接。您可通过链接在阿里云盘中查看上传的图片。
 
-一、准备转存阿里云盘文件夹
-1.手机下载安装阿里云盘 APP
-图片
 
-参加阿里云盘达人招募计划，有机会获得50T容量，点击我立即报名参加！
+
+## 获取 `folder_id`、`refresh_token` 和 `access_token` 的教程
+
+### 获取 `folder_id`
+1. **登录阿里云盘网页端**：使用您的阿里云盘账号登录[阿里云盘网页版](https://www.aliyundrive.com/)。
+2. **导航到目标文件夹**：在阿里云盘网页端找到您希望上传图片的目标文件夹，并点击打开它。
+3. **复制 `folder_id`**：此时，浏览器地址栏的URL应该类似于`https://www.aliyundrive.com/s/xxxxxx`，其中`xxxxxx`就是您需要的`folder_id`。请复制该字符串，后续将用于配置节点。
+
+### 获取 `refresh_token` 和 `access_token`
+
+#### 通过阿里云盘开放平台（需要开发者权限）
+1. **注册成为开发者**：访问[阿里云盘开放平台](https://www.aliyundrive.com/developers/documents)，使用您的阿里云账号注册成为开发者。
+2. **创建应用**：在开放平台控制台中，点击“创建应用”。填写应用相关信息，如应用名称、应用描述等。
+3. **获取 `client_id` 和 `client_secret`**：应用创建成功后，在应用详情页面中可以找到`client_id`和`client_secret`，这两个信息在后续获取`refresh_token`和`access_token`时会用到。
+4. **获取授权码（`code`）**：构造以下URL并在浏览器中打开：
+```
+https://openapi.aliyundrive.com/oauth/authorize?client_id=YOUR_CLIENT_ID&response_type=code&redirect_uri=YOUR_REDIRECT_URI&scope=user:base,file:all:read,file:all:write
+```
+将`YOUR_CLIENT_ID`替换为您在第3步获取的`client_id`，`YOUR_REDIRECT_URI`替换为您在开放平台配置的回调地址（例如`http://localhost:8088/callback`）。用户登录阿里云盘账号并授权后，浏览器将重定向到回调地址，此时URL中会包含一个`code`参数，复制该参数的值。
+5. **获取 `access_token` 和 `refresh_token`**：使用以下`curl`命令（或在代码中使用HTTP请求库）获取`access_token`和`refresh_token`：
+```bash
+curl -X POST \
+  'https://openapi.aliyundrive.com/oauth/access_token' \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "client_id": "YOUR_CLIENT_ID",
+        "client_secret": "YOUR_CLIENT_SECRET",
+        "grant_type": "authorization_code",
+        "code": "YOUR_CODE",
+        "redirect_uri": "YOUR_REDIRECT_URI"
+      }'
+```
+将`YOUR_CLIENT_ID`、`YOUR_CLIENT_SECRET`、`YOUR_CODE`和`YOUR_REDIRECT_URI`替换为实际的值。命令执行成功后，返回的JSON数据中将包含`access_token`和`refresh_token`。
+
+#### 通过第三方工具（以 aliyundrive - webdav 为例，此方法可能存在风险，使用需谨慎）
+1. **安装 `aliyundrive - webdav`**：在命令行中运行`pip install aliyundrive - webdav`。
+2. **登录并获取 `refresh_token`**：运行`aliyundrive - webdav login`，按照提示在浏览器中完成登录流程。登录成功后，工具会在终端输出`refresh_token`。此时虽然未直接获取`access_token`，但节点在需要时会自动使用`refresh_token`刷新获取`access_token`。
+
+
+
+### 以下是我在海纳思社区找到的教程 
+
+**一、准备转存阿里云盘文件夹**
+1.手机下载安装阿里云盘 APP
+
+![下载阿里云盘APP](https://doc.ecoo.top/assets/images/xiaoya1-9cd37baeb33af3af0b69d49aaec19169.jpg)
 
 2、注册登录阿里云盘
 
+![注册登录阿里云盘](https://doc.ecoo.top/assets/images/xiaoya2-b58d68ba81e3fe80bb50dd0fbf05308a.png)
 
 3、电脑浏览器打开阿里云盘官网
-点击此处前往登录
+
+[点击此处前往登录](https://www.alipan.com "登录")
 
 4、使用手机上的阿里云盘 App 扫码登录
 
+![扫码登陆](https://doc.ecoo.top/assets/images/xiaoya3-4c62b712dbad8acd8c8fddd86a7ccc70.png)
 
 5、创建小雅缓存的文件夹
 文件名可以自行定义，注意不能使用 备份盘 ，必须使用 资源库
 
+![创建文件夹](https://doc.ecoo.top/assets/images/xiaoya4-f51a4a68790245cd4d3d61760f77fc2a.png)
 
 
-6、获取所需的 folderId
-获得转存文件夹参数 folderId，将这串数字复制保存。
+6、获取所需的 `folderId`
+获得转存文件夹参数 `folderId`，将这串数字复制保存。
+![获取folderId](https://doc.ecoo.top/assets/images/xiaoya5-eef1603b72ee93c35eab16034ee17054.jpg)
 
 
+**二、获取 refreshToken（32 位长）**
+访问链接扫码登录即可获取，这是海纳思系统网站建立的代理地址：
 
-二、获取 refreshToken（32 位长）
-访问链接扫码登录即可获取，这是本站建立的代理地址：
-
-点击 csb.histb.com 此处前往获取 refreshToken
+[点击 csb.histb.com 此处前往获取 refreshToken](https://csb.histb.com/ "refreshToken")
 
 将这串字符复制保存
 
+![获取 refreshToken（32 位长）](https://doc.ecoo.top/assets/images/xiaoya6-c1730350567ba020e16c73e4cddf2d95.png)
 
 
-三、获取 token（280 位长）
-点击此处前往获取 token
+**三、获取 token（280 位长）**
+
+[点击此处前往获取 token](https://alist.nn.ci/tool/aliyundrive/request.html "token")
 
 点击按钮,生成登录二维码
 
-
+![获取token](https://doc.ecoo.top/assets/images/xiaoya7-e116ae5e9a82a62b5193ea8f41a0fe16.png)
 
 手机扫码授权
 
+![手机扫码授权](https://doc.ecoo.top/assets/images/xiaoya8-fbab93b4619a1c038d1ea2b839450fcc.jpg)
+
+授权完成后点击按钮生成 `280 位 token`
 
 
-授权完成后点击按钮生成 280 位 token
 
+复制保存` token（280 位）`
 
-
-复制保存 token（280 位）
-
-
+![保持token](https://doc.ecoo.top/assets/images/xiaoya10-604a5d6ca332a296e42a0e4597d47e59.png)
 
 ## 注意事项
 1. **依赖安装问题**：如果在安装依赖时遇到问题，请确保您的Python环境配置正确，且`pip`能够正常工作。若手动安装依赖，可尝试使用管理员权限运行安装命令。
