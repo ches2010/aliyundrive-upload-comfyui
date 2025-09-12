@@ -1,0 +1,2 @@
+# ComfyUI_aliupload
+实现ComfyUI中生成图片实时上传至阿里云盘
