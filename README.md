@@ -91,7 +91,10 @@ curl -X POST \
 
 ### 以下是我在海纳思社区找到的教程 
 
+[小雅安装教程|海纳思系统](https://doc.ecoo.top/docs/nas-skill/xiaoya/ "小雅安装教程|海纳思系统")
+
 **一、准备转存阿里云盘文件夹**
+
 1.手机下载安装阿里云盘 APP
 
 ![下载阿里云盘APP](https://doc.ecoo.top/assets/images/xiaoya1-9cd37baeb33af3af0b69d49aaec19169.jpg)
@@ -109,12 +112,14 @@ curl -X POST \
 ![扫码登陆](https://doc.ecoo.top/assets/images/xiaoya3-4c62b712dbad8acd8c8fddd86a7ccc70.png)
 
 5、创建小雅缓存的文件夹
+
 文件名可以自行定义，注意不能使用 备份盘 ，必须使用 资源库
 
 ![创建文件夹](https://doc.ecoo.top/assets/images/xiaoya4-f51a4a68790245cd4d3d61760f77fc2a.png)
 
 
 6、获取所需的 `folderId`
+
 获得转存文件夹参数 `folderId`，将这串数字复制保存。
 ![获取folderId](https://doc.ecoo.top/assets/images/xiaoya5-eef1603b72ee93c35eab16034ee17054.jpg)
 
@@ -143,7 +148,7 @@ curl -X POST \
 
 授权完成后点击按钮生成 `280 位 token`
 
-
+![点击按钮生成280位token](https://github.com/ches2010/ComfyUI_aliupload/blob/main/aliyun/token.png)
 
 复制保存` token（280 位）`
 
