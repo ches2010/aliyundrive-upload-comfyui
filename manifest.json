@@ -3,10 +3,10 @@
     "version": "1.0.0",           # 版本号
     "author": "许半仙",
     "description": "将ComfyUI生成的图片自动上传到阿里云盘",
-    "repo": "https://github.com/ches2010/ComfyUI_aliupload",  # 仓库地址
+    "repo": "https://github.com/ches2010/aliyun_drive_upload",  # 仓库地址
     "install_dir": "custom_nodes",  # 节点安装到ComfyUI的哪个目录（固定为custom_nodes）
     "nodes": [                      # 节点文件路径（相对于仓库根目录）
-        "custom_nodes/ComfyUI_aliupload/__init__.py"
+        "custom_nodes/aliyun_drive_upload/__init__.py"
     ],
     "requirements": [               # 依赖配置（直接引用requirements.txt或列出版本）
         "requirements.txt"
