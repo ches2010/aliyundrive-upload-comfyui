@@ -16,8 +16,8 @@ echo 依赖安装完成！
 
 # 提示用户将节点目录复制到ComfyUI的custom_nodes
 echo.
-echo 请将本仓库中的 "custom_nodes/aliyun_drive_upload" 文件夹复制到你的ComfyUI根目录下的 "custom_nodes" 中。
-echo 例如：将 "ComfyUI-AliyunDrive-Upload/custom_nodes/aliyun_drive_upload" 复制到 "ComfyUI/custom_nodes/"
+echo 请将本仓库中的 "custom_nodes/ComfyUI_aliupload" 文件夹复制到你的ComfyUI根目录下的 "custom_nodes" 中。
+echo 例如：将 "ComfyUI-AliyunDrive-Upload/custom_nodes/ComfyUI_aliupload" 复制到 "ComfyUI/custom_nodes/"
 echo 重启ComfyUI即可使用节点。
 
 pause
