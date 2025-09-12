@@ -2,3 +2,4 @@
 requests>=2.31.0
 qrcode>=7.4.2
 Pillow>=9.5.0
+flask>=2.2.3  # 若节点用到了Flask（如之前的扫码功能）
