@@ -8,7 +8,7 @@
 1. **打开ComfyUI**：确保ComfyUI已成功启动并运行。
 2. **进入管理器面板**：在ComfyUI界面中，通常可在侧边栏找到`Manager`面板。
 3. **安装自定义节点**：点击`Install Custom Node`，然后选择`Install from URL`。
-4. **输入仓库地址**：输入本节点的仓库地址`https://github.com/ches2010/ComfyUI_aliupload.git`，并点击安装按钮。ComfyUI管理器将自动完成以下操作：
+4. **输入仓库地址**：输入本节点的仓库地址`https://github.com/ches2010/aliyun_drive_upload.git`，并点击安装按钮。ComfyUI管理器将自动完成以下操作：
     - 从GitHub克隆仓库到ComfyUI的`custom_nodes`目录。
     - 读取`manifest.json`文件，识别`requirements.txt`中的依赖，并自动安装所需的Python库。
 5. **重启ComfyUI**：安装完成后，按照提示重启ComfyUI。重启后，即可在节点面板中找到并使用本节点。
@@ -16,7 +16,7 @@
 ### 手动安装
 1. **克隆仓库**：在命令行中运行以下命令，将本仓库克隆到本地：
     ```bash
-    git clone https://github.com/ches2010/ComfyUI_aliupload.git
+    git clone https://github.com/ches2010/aliyun_drive_upload.git
     cd ComfyUI_aliupload
     ```
 2. **安装依赖**：
