@@ -3,6 +3,6 @@
     "description": "将ComfyUI生成的图片实时上传到阿里云盘",
     "author": "许半仙",
     "version": "1.0.0",
-    "repo": "https://github.com/ches2010/aliyundrive-upload-comfyui",
+    "repo": "https://github.com/ches2010/comfyui-aliyun-drive-node",
     "category": "上传工具"
 }
