@@ -1,7 +1,7 @@
 # requirements.txt
-requests>=2.31.0
-aliyundrive-openapi
+#aliyundrive-openapi
+requests>=2.28.0
+aligo>=6.0.0 # 阿里云盘API封装库
+Pillow>=9.0.0
 #qrcode>=7.4.2
-#Pillow>=9.5.0
-#aligo>=0.0.1  # 阿里云盘API封装库
 #flask>=2.2.3  # 若节点用到了Flask（如之前的扫码功能）
