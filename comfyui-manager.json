@@ -1,0 +1,8 @@
+{
+    "name": "阿里云盘图片上传节点",
+    "description": "将ComfyUI生成的图片实时上传到阿里云盘",
+    "author": "许半仙",
+    "version": "1.0.0",
+    "repo": "https://github.com/ches2010/aliyundrive-upload-comfyui",
+    "category": "上传工具"
+}
