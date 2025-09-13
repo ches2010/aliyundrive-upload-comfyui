@@ -1,7 +1,7 @@
 import os
 import io
 from PIL import Image
-from aliyundrive_sdk import AliyunDrive  # 假设的SDK，需根据实际调整
+from aliyundrive_cli import AliyunDrive  # 假设的SDK，需根据实际调整
 import torch
 from nodes import Node  # ComfyUI节点基类
 
