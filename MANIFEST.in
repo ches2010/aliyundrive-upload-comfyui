@@ -1,0 +1,2 @@
+include custom_nodes/aliyun_drive_upload.py
+include requirements.txt
