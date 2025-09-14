@@ -51,15 +51,17 @@ python install.py
     - `refresh_token`获取方式：可通过阿里云盘开放平台工具或第三方工具获取，有效期通常较长（30天以上），若失效需重新获取。
     - （可选）如果您希望上传的文件有不同的命名规则，可以修改 `file_name_prefix`。
 2. **配置节点**：
+
    节点1：在ComfyUI工作流中添加本节点，将生成图片的节点（如`KSampler`等）的输出连接到本节点的`image`输入。同时，在本节点参数设置中：
     - `refresh_token`：填入获取到的`refresh_token`。
     - `folder_id`：填入目标文件夹的`folder_id`。
     - （可选）`file_prefix`：可自定义文件名前缀，方便对上传的图片进行归类。
-    节点2：打开`comfyui/custom_nodes/comfyui_aliyundrive_uploader`目录下的`aliyun_drive_config.json`（windows系统可用记事本打开），将里面的`your_actual_refresh_token_here`和`your_actual_folder_id_here`分别换成你的`refresh_token`和`folder_id`
+
+    节点2：将`comfyui_aliyundrive_uploader`目录下的`aliyun_drive_config.json`下载下来，打开编辑（windows系统可用记事本打开），将里面的`your_actual_refresh_token_here`和`your_actual_folder_id_here`分别换成你的`refresh_token`和`folder_id`，然后上传到`ComfyUI/custom_nodes/comfyui_aliyundrive_uploader`下。
 ```jasn
 {
-    "refresh_token": "your_actual_refresh_token_here", #将your_actual_refresh_token_here换成你的refresh_token
-    "folder_id": "your_actual_folder_id_here"   #将your_actual_folder_id_here换成你的folder_id
+    "refresh_token": "your_actual_refresh_token_here",
+    "folder_id": "your_actual_folder_id_here"
 }
 ```
 使用节点2时，系统将直接调用你的`refresh_token`和`folder_id`。
