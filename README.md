@@ -133,4 +133,4 @@ curl -X POST \
 - **GitHub仓库**：[仓库链接](https://github.com/ches2010/ComfyUI_aliupload)，您可在仓库中提交Issues反馈问题。
 
 ## 许可证
-本项目基于[MIT lissense]开源协议发布，详细内容请查看`LICENSE`文件。在使用本项目时，请遵守相关开源协议规定。
+本项目基于[MIT license]开源协议发布，详细内容请查看`LICENSE`文件。在使用本项目时，请遵守相关开源协议规定。
