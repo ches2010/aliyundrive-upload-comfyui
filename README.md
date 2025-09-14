@@ -1,6 +1,6 @@
 # ComfyUI - 阿里云盘上传节点
 
-将ComfyUI生成的图片自动上传到阿里云盘的自定义节点。通过本节点，用户能够方便快捷地将生成的图片存储到阿里云盘，便于后续查看与管理。
+将[ComfyUI](https://github.com/comfyanonymous/ComfyUI) 生成的图片自动上传到阿里云盘的自定义节点。通过本节点，用户能够方便快捷地将生成的图片存储到阿里云盘，便于后续查看与管理。
 
 **中文** | [English](https://github.com/ches2010/comfyui_aliyundrive_uploader/blob/main/README_en.md) | [token教程](https://github.com/ches2010/comfyui_aliyundrive_uploader/blob/main/token.md)
 
