@@ -65,7 +65,7 @@ python install.py
   使用节点2时，系统将直接调用你的`refresh_token`和`folder_id`。
 3. **运行工作流**：点击“Queue Prompt”运行工作流，节点将自动上传图片到指定的阿里云盘文件夹。
 如果是第一次在你的机器上运行，后台将显示登录二维码，需使用阿里云盘手机app扫描登录后使用。
-
+![扫描二维码示意图](https://github.com/ches2010/comfyui_aliyundrive_uploader/blob/main/aliyun/scan.png)
 
 ## 获取 `folder_id`、`refresh_token` 和 `access_token` 的教程
 
