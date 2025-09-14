@@ -130,7 +130,7 @@ curl -X POST \
 ## 联系方式
 如果在使用过程中遇到任何问题或有任何建议，欢迎通过以下方式联系我们：
 - **邮箱**：ches2010@qq.com
-- **GitHub仓库**：[仓库链接](https://github.com/ches2010/ComfyUI_aliupload)，您可在仓库中提交Issues反馈问题。
+- **GitHub仓库**：[仓库链接](https://github.com/ches2010/comfyui_aliyundrive_uploader)，您可在仓库中提交Issues反馈问题。
 
 ## 许可证
 本项目基于[MIT license]开源协议发布，详细内容请查看`LICENSE`文件。在使用本项目时，请遵守相关开源协议规定。
