@@ -8,16 +8,16 @@
 1. **打开ComfyUI**：确保ComfyUI已成功启动并运行。
 2. **进入管理器面板**：在ComfyUI界面中，通常可在侧边栏找到`Manager`面板。
 3. **安装自定义节点**：点击`Install Custom Node`，然后选择`Install from URL`。
-4. **输入仓库地址**：输入本节点的仓库地址`https://github.com/ches2010/aliyun_drive_upload.git`，并点击安装按钮。ComfyUI管理器将自动完成以下操作：
+4. **输入仓库地址**：输入本节点的仓库地址`https://github.com/ches2010/comfyui_aliyundrive_uploader.git`，并点击安装按钮。ComfyUI管理器将自动完成以下操作：
     - 从GitHub克隆仓库到ComfyUI的`custom_nodes`目录。
-    - 读取`manifest.json`文件，识别`requirements.txt`中的依赖，并自动安装所需的Python库。
+    - 识别`requirements.txt`中的依赖，并自动安装所需的Python库。
 5. **重启ComfyUI**：安装完成后，按照提示重启ComfyUI。重启后，即可在节点面板中找到并使用本节点。
 
 ### 手动安装
-1. **克隆仓库**：在命令行中运行以下命令，将本仓库克隆到本地：
+1. **克隆仓库**：进入你的ComfyUI主文件夹，在命令行中运行以下命令，将本仓库克隆到本地：
     ```bash
-    git clone https://github.com/ches2010/aliyun_drive_upload.git
-    cd ComfyUI_aliupload
+    cd custom_nodes
+    git clone https://github.com/ches2010/comfyui_aliyundrive_uploader.git
     ```
 2. **安装依赖**：
     - **Windows系统**：双击运行仓库根目录下的`install.bat`文件。脚本将自动检测并安装所需的Python依赖。若未安装`pip`，脚本将提示先安装Python并配置环境变量。
@@ -30,23 +30,27 @@
    ./install.sh
     ```
     脚本会自动检测`pip`是否安装，并安装`requirements.txt`中列出的依赖。若未安装`pip`，将提示用户先安装Python并配置环境变量。
-3. **部署节点**：将`custom_nodes/aliyun_drive_upload`文件夹复制到ComfyUI根目录下的`custom_nodes`文件夹中。例如，在Linux或macOS系统中，可使用以下命令：
-    ```bash
-    cp -r custom_nodes/aliyun_drive_upload ~/ComfyUI/custom_nodes/
-    ```
     在Windows系统中，可手动将文件夹复制到相应路径。
-4. **重启ComfyUI**：完成上述步骤后，重启ComfyUI，即可在节点面板中找到并使用本节点。
+3. **重启ComfyUI**：完成上述步骤后，重启ComfyUI，即可在节点面板中找到并使用本节点。
 
 ## 使用方法
 1. **准备参数**：在使用本节点前，您需要准备阿里云盘的`folder_id`、`refresh_token`，如果有`access_token`也可一并准备（若不提供，节点会自动刷新获取）。
     - `folder_id`获取方式：在阿里云盘网页端打开目标文件夹，地址栏URL格式为`https://www.aliyundrive.com/s/xxxxxx`，其中`xxxxxx`即为`folder_id`。
     - `refresh_token`获取方式：可通过阿里云盘开放平台工具或第三方工具获取，有效期通常较长（30天以上），若失效需重新获取。
-2. **配置节点**：在ComfyUI工作流中添加本节点，将生成图片的节点（如`KSampler`等）的输出连接到本节点的`image`输入。同时，在本节点参数设置中：
+2. **配置节点**：
+   节点1：在ComfyUI工作流中添加本节点，将生成图片的节点（如`KSampler`等）的输出连接到本节点的`image`输入。同时，在本节点参数设置中：
     - `refresh_token`：填入获取到的`refresh_token`。
     - `folder_id`：填入目标文件夹的`folder_id`。
-    - （可选）`access_token`：若已获取，可填入；若留空，节点会在需要时自动刷新获取。
     - （可选）`file_prefix`：可自定义文件名前缀，方便对上传的图片进行归类。
-3. **运行工作流**：点击“Queue Prompt”运行工作流，节点将自动上传图片到指定的阿里云盘文件夹，并返回`file_id`和阿里云盘文件链接。您可通过链接在阿里云盘中查看上传的图片。
+    节点2：打开`comfyui/custom_nodes/comfyui_aliyundrive_uploader`目录下的`aliyun_drive_config.json`（windows系统可用记事本打开），将里面的`your_actual_refresh_token_here`和`your_actual_folder_id_here`分别换成你的`refresh_token`和`folder_id`
+```jasn
+{
+    "refresh_token": "your_actual_refresh_token_here", #将your_actual_refresh_token_here换成你的refresh_token
+    "folder_id": "your_actual_folder_id_here"   #将your_actual_folder_id_here换成你的folder_id
+}
+```
+  使用节点2时，系统将直接调用你的`refresh_token`和`folder_id`。
+3. **运行工作流**：点击“Queue Prompt”运行工作流，节点将自动上传图片到指定的阿里云盘文件夹。
 
 
 
