@@ -1,32 +1,91 @@
 import os
 import sys
+import json
 import subprocess
 import folder_paths
 import traceback
+import hashlib # For potential future use or hashing
 
+# --- 1. Dependency Management ---
 # Ensure dependencies are installed before importing them
+DEPENDENCIES = ['aligo', 'requests'] # Add other deps if needed in the future
+
+def is_dependency_installed(dep_name):
+    try:
+        __import__(dep_name)
+        return True
+    except ImportError:
+        return False
+
+def install_dependencies():
+    missing_deps = [dep for dep in DEPENDENCIES if not is_dependency_installed(dep)]
+    if missing_deps:
+        print(f"Aliyun Drive Uploader Node: Missing dependencies: {missing_deps}. Attempting to install...")
+        try:
+            # Use '-s' flag to isolate installation if needed
+            subprocess.check_call([sys.executable, '-s', '-m', 'pip', 'install'] + missing_deps)
+            print("Aliyun Drive Uploader Node: Dependencies installed successfully.")
+            return True
+        except Exception as e:
+            print(f"Aliyun Drive Uploader Node: Failed to install dependencies {missing_deps}: {e}")
+            return False
+    return True
+
+# Attempt to install dependencies on import
+INSTALL_SUCCESS = install_dependencies()
+
+# Import dependencies after attempting installation
 try:
     import requests
     from aligo import Aligo
-    # Import specific exceptions if available (check aligo docs)
-    # from aligo.core import *
-except ImportError:
-    # If running inside ComfyUI, try to install dependencies silently
-    # This is a fallback, primary installation should happen via install.py or requirements.txt
-    print("Aliyun Drive Uploader Node: Required packages not found. Attempting to install...")
-    try:
-        subprocess.check_call([sys.executable, '-s', '-m', 'pip', 'install', 'aligo', 'requests'])
-        import requests
-        from aligo import Aligo
-        print("Aliyun Drive Uploader Node: Dependencies installed successfully.")
-    except Exception as e:
-        print(f"Aliyun Drive Uploader Node: Failed to install dependencies: {e}")
-        raise e
+except ImportError as e:
+    print(f"Aliyun Drive Uploader Node: Critical Error - Could not import required libraries even after installation attempt: {e}")
+    # We might not be able to define the node class properly without these
+    # INSTALL_SUCCESS flag can be checked later
 
-# Define the node class
-class UploadToAliyunDrive:
+# --- 2. Configuration Handling ---
+# Define the path to the config file relative to this script's directory
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE_PATH = os.path.join(THIS_DIR, "aliyundrive_config.json")
+
+def load_config():
     """
-    A ComfyUI node to upload an image to Aliyun Drive.
+    Loads refresh_token and folder_id from the config file.
+    Returns a dictionary with 'refresh_token' and 'folder_id' keys, or None if failed.
+    """
+    if not os.path.exists(CONFIG_FILE_PATH):
+        print(f"Aliyun Drive Uploader Node Error: Configuration file not found at {CONFIG_FILE_PATH}")
+        print("Please create 'aliyundrive_config.json' with 'refresh_token' and 'folder_id'.")
+        return None
+
+    try:
+        with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
+            config_data = json.load(f)
+        
+        refresh_token = config_data.get("refresh_token")
+        folder_id = config_data.get("folder_id")
+
+        if not refresh_token or not folder_id:
+             print("Aliyun Drive Uploader Node Error: 'refresh_token' or 'folder_id' missing in config file.")
+             return None
+        
+        print("Aliyun Drive Uploader Node: Configuration loaded successfully.")
+        return {
+            "refresh_token": refresh_token.strip(), # Remove potential whitespace
+            "folder_id": folder_id.strip()
+        }
+    except json.JSONDecodeError as e:
+        print(f"Aliyun Drive Uploader Node Error: Failed to parse config file JSON: {e}")
+        return None
+    except Exception as e:
+         print(f"Aliyun Drive Uploader Node Error: Unexpected error loading config: {e}")
+         return None
+
+# --- 3. Node Class Definition ---
+class SimpleUploadToAliyunDrive:
+    """
+    A ComfyUI node to upload an image to Aliyun Drive using credentials from a config file.
+    Also provides image preview.
     """
     def __init__(self):
         pass
@@ -36,122 +95,119 @@ class UploadToAliyunDrive:
         return {
             "required": {
                 "images": ("IMAGE", ),
-                "folder_id": ("STRING", {"default": "your_folder_id_here", "multiline": False}),
-                "refresh_token": ("STRING", {"default": "your_refresh_token_here", "multiline": False}),
                 "file_name_prefix": ("STRING", {"default": "comfyui_output_", "multiline": False}),
+                # refresh_token and folder_id are now loaded from file, not input
+                # We can add a dummy input or a reload config button if needed, but for simplicity, we'll rely on file change + node re-run
             },
         }
 
-    RETURN_TYPES = ()
-    FUNCTION = "upload"
+    # This node outputs the image for preview and has no named return for data flow
+    RETURN_TYPES = ("IMAGE",) 
+    RETURN_NAMES = ("images",) # Name the output for clarity
+    FUNCTION = "process_and_upload"
     CATEGORY = "image/upload"
-    OUTPUT_NODE = True # Indicates this node has output actions
+    OUTPUT_NODE = False # This node doesn't just perform an action, it also passes data
+    DESCRIPTION = "Uploads images to Aliyun Drive using settings from aliyundrive_config.json and provides a preview."
 
-    def upload(self, images, folder_id, refresh_token, file_name_prefix):
+    def process_and_upload(self, images, file_name_prefix):
         """
-        Uploads the input images to Aliyun Drive.
+        Uploads the input images to Aliyun Drive and passes them through for preview.
         """
+        # --- Load Configuration ---
+        config = load_config()
+        if not config:
+            # Configuration error, pass through image but don't upload
+            print("Aliyun Drive Uploader Node: Upload skipped due to configuration error.")
+            return (images, ) # Return images for preview even if upload fails
+
+        refresh_token = config["refresh_token"]
+        folder_id = config["folder_id"]
+
+        # --- Initialize Aligo ---
+        ali = None
         try:
-            print(f"Aliyun Drive Uploader: Attempting to initialize Aligo with provided refresh_token...")
-            # Initialize Aligo with refresh token
+            if not INSTALL_SUCCESS:
+                 raise Exception("Dependencies were not successfully installed.")
+            print("Aliyun Drive Uploader Node: Initializing Aligo...")
             ali = Aligo(refresh_token=refresh_token)
-            print(f"Aliyun Drive Uploader: Aligo initialized successfully.")
-            
-            # --- Optional: Verify folder exists (requires listing capability) ---
-            # This is a more advanced check and might require pagination for large drives.
-            # Uncomment and adapt if needed.
-            # try:
-            #     folder_info = ali.get_file(file_id=folder_id)
-            #     if not folder_info or not getattr(folder_info, 'type', None) == 'folder':
-            #          print(f"Aliyun Drive Uploader Warning: folder_id '{folder_id}' might not be a valid folder or could not be retrieved for verification.")
-            #     else:
-            #          print(f"Aliyun Drive Uploader: Verified folder name: {getattr(folder_info, 'name', 'Unknown')}")
-            # except Exception as verify_err:
-            #     print(f"Aliyun Drive Uploader: Warning - Could not verify folder existence: {verify_err}")
-            # --- End Optional Check ---
+            print("Aliyun Drive Uploader Node: Aligo initialized.")
+        except Exception as e:
+            print(f"Aliyun Drive Uploader Node Error: Failed to initialize Aligo: {e}")
+            traceback.print_exc()
+            # Pass through image but don't upload
+            return (images, )
 
-            # Get the output directory from ComfyUI's configuration
+        # --- Upload Process ---
+        try:
             output_dir = folder_paths.get_output_directory()
-            print(f"Aliyun Drive Uploader: Using ComfyUI output directory: {output_dir}")
-            
-            # Iterate through the batch of images
+            print(f"Aliyun Drive Uploader Node: Using ComfyUI output directory: {output_dir}")
+
+            successful_uploads = 0
             for i, image in enumerate(images):
                 # Convert tensor to numpy array
-                # Use a different variable name, e.g., 'image_np'
                 image_np = 255. * image.cpu().numpy()
                 from PIL import Image
-                # Create PIL Image from the numpy array
                 img = Image.fromarray(image_np.astype('uint8'), 'RGB')
-                
-                # Create a temporary file path using the loop index 'i'
+
+                # Create a temporary file path
                 filename = f"{file_name_prefix}{i:05}.png"
                 temp_file_path = os.path.join(output_dir, filename)
-                print(f"Aliyun Drive Uploader: Saving temporary image to {temp_file_path}")
-                
-                # Save the image locally first (Aligo upload_file usually needs a file path)
-                img.save(temp_file_path, format='PNG')
-                
-                # Upload the file to Aliyun Drive
-                print(f"Aliyun Drive Uploader: Uploading '{filename}' to folder ID '{folder_id}'...")
-                try:
-                    # Wrap the upload call in its own try-except to isolate potential aligo issues
-                    uploaded_file = ali.upload_file(file_path=temp_file_path, parent_file_id=folder_id)
-                    
-                    if uploaded_file and hasattr(uploaded_file, 'file_id'):
-                        print(f"Aliyun Drive Uploader: Successfully uploaded '{filename}'. File ID: {uploaded_file.file_id}")
-                    else:
-                        # Handle case where upload_file might return None or unexpected object without raising
-                        print(f"Aliyun Drive Uploader: Warning - Upload call for '{filename}' returned unexpected result or None.")
-                        
-                except AttributeError as attr_err:
-                    # Specifically catch the 'Null' object error from aligo
-                    print(f"Aliyun Drive Uploader: AttributeError during upload (likely from aligo library): {attr_err}")
-                    print(f"Aliyun Drive Uploader: This often indicates an API error (like 404 for folder_id) was not handled correctly by aligo.")
-                    # Re-raise or handle as needed. Raising might stop the whole workflow.
-                    # raise attr_err # Re-raise if you want the node to fail visibly
-                    # Or just log and continue with other images
-                    print(f"Aliyun Drive Uploader: Skipping upload for '{filename}' due to library error.")
-                    
-                except requests.exceptions.HTTPError as http_err:
-                    # Catch HTTP errors returned by the API (like the 404 we saw)
-                    print(f"Aliyun Drive Uploader: HTTP error during upload for '{filename}': {http_err}")
-                    print(f"Aliyun Drive Uploader: Response content: {getattr(http_err.response, 'text', 'N/A')}")
-                    # Re-raise or handle
-                    # raise http_err
-                    print(f"Aliyun Drive Uploader: Skipping upload for '{filename}' due to HTTP error.")
-                    
-                except Exception as upload_err:
-                    # Catch any other exceptions during the upload process
-                    print(f"Aliyun Drive Uploader: Unexpected error during upload for '{filename}': {upload_err}")
-                    traceback.print_exc()
-                    # Re-raise or handle
-                    # raise upload_err
-                    print(f"Aliyun Drive Uploader: Skipping upload for '{filename}' due to unexpected error.")
+                print(f"Aliyun Drive Uploader Node: Saving temporary image to {temp_file_path}")
 
-                # Optional: Remove the temporary file after upload attempt (success or failure)
-                # Consider if you want to keep files locally if upload fails
-                # try:
-                #     os.remove(temp_file_path)
-                #     print(f"Aliyun Drive Uploader: Removed temporary file {temp_file_path}")
-                # except OSError as remove_err:
-                #     print(f"Aliyun Drive Uploader: Warning - Could not remove temporary file {temp_file_path}: {remove_err}")
+                img.save(temp_file_path, format='PNG')
+
+                # Upload the file
+                print(f"Aliyun Drive Uploader Node: Uploading '{filename}' to folder ID '{folder_id}'...")
+                try:
+                    uploaded_file = ali.upload_file(file_path=temp_file_path, parent_file_id=folder_id)
+                    if uploaded_file and hasattr(uploaded_file, 'file_id'):
+                        print(f"Aliyun Drive Uploader Node: Successfully uploaded '{filename}'. File ID: {uploaded_file.file_id}")
+                        successful_uploads += 1
+                    else:
+                        print(f"Aliyun Drive Uploader Node: Warning - Upload call for '{filename}' returned unexpected result.")
+                except requests.exceptions.HTTPError as http_err:
+                    print(f"Aliyun Drive Uploader Node: HTTP error during upload for '{filename}': {http_err}")
+                    print(f"Response content: {getattr(http_err.response, 'text', 'N/A')}")
+                except Exception as upload_err:
+                    print(f"Aliyun Drive Uploader Node: Error during upload for '{filename}': {upload_err}")
+                    traceback.print_exc()
+                finally:
+                    # Optional: Remove temp file
+                    try:
+                        os.remove(temp_file_path)
+                        print(f"Aliyun Drive Uploader Node: Removed temporary file {temp_file_path}")
+                    except OSError as remove_err:
+                         print(f"Aliyun Drive Uploader Node: Warning - Could not remove temporary file {temp_file_path}: {remove_err}")
+
+            print(f"Aliyun Drive Uploader Node: Upload process finished. {successful_uploads}/{len(images)} images uploaded successfully.")
 
         except Exception as e:
-            print(f"Aliyun Drive Uploader Node General Error: {e}")
+            print(f"Aliyun Drive Uploader Node General Error during processing: {e}")
             traceback.print_exc()
-            # Depending on your needs, you might want to re-raise the exception
-            # to halt the workflow or make the node show an error state in ComfyUI
-            # raise e 
+            # Even if upload fails, we still return the image for preview
+        # --- Pass Image Through for Preview ---
+        # The core function is to pass the image through so it can be connected to a Preview node
+        return (images, )
 
-        # This node doesn't return any data to other nodes, it just performs an action
-        return ()
+# At the end of nodes.py, replace the import and registration part with:
 
-# A dictionary that contains all nodes you want to export with their names
+# --- 4. Node Registration ---
+# Import the original node from the separate file
+try:
+    from .nodes_original import UploadToAliyunDrive
+    ORIGINAL_NODE_AVAILABLE = True
+except ImportError:
+    print("Aliyun Drive Uploader Node: Original node (nodes_original.py) not found or failed to import.")
+    ORIGINAL_NODE_AVAILABLE = False
+
 NODE_CLASS_MAPPINGS = {
-    "UploadToAliyunDrive": UploadToAliyunDrive
+    "SimpleUploadToAliyunDrive": SimpleUploadToAliyunDrive # New simplified node
+}
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "SimpleUploadToAliyunDrive": "Upload to Aliyun Drive (Config File)"
 }
 
-# A dictionary that contains the friendly/humanly readable titles for the nodes
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "UploadToAliyunDrive": "Upload to Aliyun Drive"
-}
+# Add the original node mapping only if it was successfully imported
+if ORIGINAL_NODE_AVAILABLE:
+    NODE_CLASS_MAPPINGS["UploadToAliyunDrive"] = UploadToAliyunDrive
+    NODE_DISPLAY_NAME_MAPPINGS["UploadToAliyunDrive"] = "Upload to Aliyun Drive (Manual)"
