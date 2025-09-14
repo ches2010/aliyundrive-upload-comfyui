@@ -90,7 +90,7 @@ def load_config():
 class SimpleUploadToAliyunDrive:
     """
     A ComfyUI node to upload an image to Aliyun Drive using credentials from a config file.
-    Also provides image preview.
+    This node acts as an output node for preview but does not pass the image data forward.
     """
     def __init__(self):
         pass
@@ -104,37 +104,48 @@ class SimpleUploadToAliyunDrive:
             },
         }
 
-    RETURN_TYPES = ("IMAGE",) 
-    RETURN_NAMES = ("images",)
+    # --- Modified: No data output ---
+    RETURN_TYPES = () # Empty tuple means no outputs
+    RETURN_NAMES = () # Empty tuple for names
+    # --- Modified: Mark as output node for preview ---
+    OUTPUT_NODE = True # This enables preview without needing to connect to another node
     FUNCTION = "process_and_upload"
     CATEGORY = "image/upload"
-    OUTPUT_NODE = False
-    DESCRIPTION = "Uploads images to Aliyun Drive using settings from aliyundrive_config.json and provides a preview."
+    DESCRIPTION = "Uploads images to Aliyun Drive using settings from aliyundrive_config.json. Acts as a preview node."
 
     def process_and_upload(self, images, file_name_prefix):
         """
-        Uploads the input images to Aliyun Drive and passes them through for preview.
+        Uploads the input images to Aliyun Drive.
+        Does not return the images, just triggers the upload and enables preview.
         """
         print("Aliyun Drive Uploader Node: process_and_upload called.")
         
         # --- Check if any images are received ---
         if images is None:
             print("Aliyun Drive Uploader Node Warning: No images received on input.")
-            return (images, )
+            # Return empty dict for OUTPUT_NODE
+            return {} 
         
-        image_count = len(images) if hasattr(images, '__len__') else 1 # Handle single image tensor
+        # Handle single image tensor or batch
+        # ComfyUI usually sends a batch as [B, H, W, C] tensor
+        # len(images) gives the batch size (B)
+        try:
+            image_count = len(images) if hasattr(images, '__len__') else (1 if images is not None else 0)
+        except:
+             # Fallback if len fails for any reason
+             image_count = 1 if images is not None else 0
+             
         print(f"Aliyun Drive Uploader Node: Received {image_count} image(s).")
 
         if image_count == 0:
              print("Aliyun Drive Uploader Node: Image list is empty. Nothing to upload.")
-             return (images, )
-
+             return {}
 
         # --- Load Configuration ---
         config = load_config()
         if not config:
             print("Aliyun Drive Uploader Node: Upload process aborted due to configuration error.")
-            return (images, ) # Return images for preview even if upload fails
+            return {} # Return empty dict for OUTPUT_NODE
 
         refresh_token = config["refresh_token"]
         folder_id = config["folder_id"]
@@ -143,17 +154,16 @@ class SimpleUploadToAliyunDrive:
         ali = None
         if not DEPS_AVAILABLE:
              print("Aliyun Drive Uploader Node: Upload process aborted due to missing dependencies.")
-             return (images, )
+             return {}
 
         try:
             print("Aliyun Drive Uploader Node: Initializing Aligo client...")
-            # Add a small timeout or check for ali instance validity if needed
             ali = Aligo(refresh_token=refresh_token)
             print("Aliyun Drive Uploader Node: Aligo client initialized successfully.")
         except Exception as e:
             print(f"Aliyun Drive Uploader Node Error: Failed to initialize Aligo client: {e}")
             traceback.print_exc()
-            return (images, )
+            return {}
 
         # --- Upload Process ---
         try:
@@ -165,12 +175,19 @@ class SimpleUploadToAliyunDrive:
             
             # --- Main Upload Loop ---
             print("Aliyun Drive Uploader Node: Starting upload loop...")
-            for i, image in enumerate(images):
-                try: # Add inner try-except for individual image processing
+            # Iterate over the batch dimension
+            for i in range(image_count): 
+                try:
                     print(f"Aliyun Drive Uploader Node: Processing image {i+1}/{image_count}...")
                     
-                    # Convert tensor to numpy array
-                    image_np = 255. * image.cpu().numpy()
+                    # Get the i-th image from the batch tensor [B, H, W, C]
+                    # images[i] will be a tensor of shape [H, W, C]
+                    single_image_tensor = images[i] 
+                    
+                    # Convert tensor [H, W, C] to numpy array
+                    # Assuming tensor values are in 0-1 range, scale to 0-255
+                    image_np = 255. * single_image_tensor.cpu().numpy()
+                    # Create PIL Image from numpy array (H, W, C) in RGB format
                     img = Image.fromarray(image_np.astype('uint8'), 'RGB')
 
                     # Create a temporary file path
@@ -203,16 +220,16 @@ class SimpleUploadToAliyunDrive:
                      except OSError as remove_err:
                          print(f"Aliyun Drive Uploader Node: Warning - Could not remove temporary file {temp_file_path}: {remove_err}")
 
-
             print(f"Aliyun Drive Uploader Node: Upload process finished. {successful_uploads}/{image_count} images uploaded successfully.")
 
         except Exception as e:
             print(f"Aliyun Drive Uploader Node General Error during upload process: {e}")
             traceback.print_exc()
             
-        # --- Pass Image Through for Preview ---
-        print("Aliyun Drive Uploader Node: Returning images for preview.")
-        return (images, )
+        # --- No data returned, just enable preview via OUTPUT_NODE ---
+        print("Aliyun Drive Uploader Node: Upload complete. Enabling preview.")
+        # For OUTPUT_NODE, returning an empty dict {} is standard
+        return {} 
 
 # --- 4. Node Registration ---
 # Assuming you have the original node in nodes_original.py
@@ -228,7 +245,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SimpleUploadToAliyunDrive": "Upload to Aliyun Drive (Config File)"
+    "SimpleUploadToAliyunDrive": "Upload to Aliyun Drive (Config File - Preview)"
 }
 
 if ORIGINAL_NODE_AVAILABLE:
