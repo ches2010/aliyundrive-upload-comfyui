@@ -1,0 +1,4 @@
+{
+    "refresh_token": "your_actual_refresh_token_here",  #将your_actual_refresh_token_here换成你的refresh_token
+    "folder_id": "your_actual_folder_id_here"   #将your_actual_folder_id_here换成你的folder_id
+}
