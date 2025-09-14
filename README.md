@@ -26,30 +26,30 @@
     - 识别`requirements.txt`中的依赖，并自动安装所需的Python库。
 5. **重启ComfyUI**：安装完成后，按照提示重启ComfyUI。重启后，即可在节点面板中找到并使用本节点。
 
-### 手动安装
-1. **克隆仓库**：进入你的ComfyUI主文件夹，在命令行中运行以下命令，将本仓库克隆到本地：
-    ```bash
-    cd custom_nodes
-    git clone https://github.com/ches2010/comfyui_aliyundrive_uploader.git
-    ```
-2. **安装依赖**：
-    - **Windows系统**：双击运行仓库根目录下的`install.bat`文件。脚本将自动检测并安装所需的Python依赖。若未安装`pip`，脚本将提示先安装Python并配置环境变量。
-    - **Linux或macOS系统**：在仓库根目录下的终端中运行以下命令赋予`install.sh`执行权限：
-    ```bash
-    chmod +x install.sh
-    ```
-    然后运行脚本：
-    ```bash
-   ./install.sh
-    ```
-    脚本会自动检测`pip`是否安装，并安装`requirements.txt`中列出的依赖。若未安装`pip`，将提示用户先安装Python并配置环境变量。
-    在Windows系统中，可手动将文件夹复制到相应路径。
-3. **重启ComfyUI**：完成上述步骤后，重启ComfyUI，即可在节点面板中找到并使用本节点。
+### 手动安装 (`git clone`)
+
+1.  导航至您的 ComfyUI 自定义节点目录（通常位于 `ComfyUI/custom_nodes`）。
+2.  克隆此仓库：
+```bash
+    git clone https://github.com/your_username/comfyui_aliyundrive_uploader.git
+```
+3.  进入克隆的目录：
+```bash
+cd comfyui_aliyundrive_uploader
+```
+4.  运行安装脚本以安装依赖项：
+```bash
+# 请确保您使用的是 ComfyUI 所用的同一个 Python 环境
+python install.py
+```
+或者，如果 ComfyUI 安装在特定环境中，请先激活该环境。
+5.  重启 ComfyUI。该节点即可使用。
 
 ## 使用方法
-1. **准备参数**：在使用本节点前，您需要准备阿里云盘的`folder_id`、`refresh_token`，如果有`access_token`也可一并准备（若不提供，节点会自动刷新获取）。
+1. **准备参数**：在使用本节点前，您需要准备阿里云盘的`folder_id`、`refresh_token`。
     - `folder_id`获取方式：在阿里云盘网页端打开目标文件夹，地址栏URL格式为`https://www.aliyundrive.com/s/xxxxxx`，其中`xxxxxx`即为`folder_id`。
     - `refresh_token`获取方式：可通过阿里云盘开放平台工具或第三方工具获取，有效期通常较长（30天以上），若失效需重新获取。
+    - （可选）如果您希望上传的文件有不同的命名规则，可以修改 `file_name_prefix`。
 2. **配置节点**：
    节点1：在ComfyUI工作流中添加本节点，将生成图片的节点（如`KSampler`等）的输出连接到本节点的`image`输入。同时，在本节点参数设置中：
     - `refresh_token`：填入获取到的`refresh_token`。
@@ -64,7 +64,7 @@
 ```
   使用节点2时，系统将直接调用你的`refresh_token`和`folder_id`。
 3. **运行工作流**：点击“Queue Prompt”运行工作流，节点将自动上传图片到指定的阿里云盘文件夹。
-
+如果是第一次在你的机器上运行，后台将显示登录二维码，需使用阿里云盘手机app扫描登录后使用。
 
 
 ## 获取 `folder_id`、`refresh_token` 和 `access_token` 的教程
@@ -104,6 +104,23 @@ curl -X POST \
 1. **安装 `aliyundrive - webdav`**：在命令行中运行`pip install aliyundrive - webdav`。
 2. **登录并获取 `refresh_token`**：运行`aliyundrive - webdav login`，按照提示在浏览器中完成登录流程。登录成功后，工具会在终端输出`refresh_token`。此时虽然未直接获取`access_token`，但节点在需要时会自动使用`refresh_token`刷新获取`access_token`。
 
+#### 通过本仓库记录的教程获取
+[token教程](https://github.com/ches2010/comfyui_aliyundrive_uploader/blob/main/token.md)
+
+## 依赖项
+
+此节点依赖于以下 Python 包，这些包应该会自动安装：
+
+*   `aligo`：用于与阿里云盘交互。
+*   `requests`：`aligo` 使用的 HTTP 库。
+*   `Pillow`：用于基本的图像处理（在 ComfyUI 环境中通常已存在）。
+
+这些依赖项已在 `requirements.txt` 文件中列出。
+
+## 示例工作流
+
+在 `examples/` 文件夹中可以找到一个示例工作流 JSON 文件 (`workflow_example.json`)，用于演示如何使用该节点。
+
 
 ## 注意事项
 1. **依赖安装问题**：如果在安装依赖时遇到问题，请确保您的Python环境配置正确，且`pip`能够正常工作。若手动安装依赖，可尝试使用管理员权限运行安装命令。
@@ -116,4 +133,4 @@ curl -X POST \
 - **GitHub仓库**：[仓库链接](https://github.com/ches2010/ComfyUI_aliupload)，您可在仓库中提交Issues反馈问题。
 
 ## 许可证
-本项目基于[具体许可证名称]开源协议发布，详细内容请查看`LICENSE`文件。在使用本项目时，请遵守相关开源协议规定。
+本项目基于[MIT lissense]开源协议发布，详细内容请查看`LICENSE`文件。在使用本项目时，请遵守相关开源协议规定。
