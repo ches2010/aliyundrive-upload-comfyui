@@ -1,0 +1,10 @@
+{
+    "aliyundrive": {
+        "refresh_token": "your_aliyun_refresh_token_here",
+        "folder_id": "your_aliyun_folder_id_here"
+    },
+    "pan115": {
+        "cookie": "your_115_cookie_string_here",
+        "target_cid": "your_115_target_folder_cid_here_or_leave_empty"
+    }
+}
