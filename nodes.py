@@ -53,11 +53,8 @@ except ImportError as e:
 # --- 2. Configuration Handling ---
 # Define the path to the config files relative to this script's directory
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-# ALIYUN_CONFIG_FILE_PATH = os.path.join(THIS_DIR, "aliyundrive_config.json") # 删除或注释掉
-# PAN115_CONFIG_FILE_PATH = os.path.join(THIS_DIR, "115_config.json") # 删除或注释掉
 MERGED_CONFIG_FILE_PATH = os.path.join(THIS_DIR, "uploader_configs.json") # 新增
 
-# --- 替换或添加新的配置加载函数 ---
 def load_configs():
     """
     Loads configurations for all services from the merged config file.
@@ -88,7 +85,6 @@ def load_configs():
         if not pan115_config.get("cookie"):
              print("Uploader Nodes Error: 'pan115.cookie' is missing or empty in config file.")
              return None
-        # target_cid is optional, handled in the node logic
 
         print("Uploader Nodes: Merged configuration loaded successfully.")
         return {
@@ -106,82 +102,6 @@ def load_configs():
         return None
     except Exception as e:
          print(f"Uploader Nodes Error: Unexpected error loading merged config: {e}")
-         traceback.print_exc()
-         return None
-
-def load_aliyun_config():
-    """
-    Loads refresh_token and folder_id from the aliyun config file.
-    Returns a dictionary with 'refresh_token' and 'folder_id' keys, or None if failed.
-    """
-    print(f"Aliyun Drive Uploader Node: Attempting to load config from {ALIYUN_CONFIG_FILE_PATH}")
-    if not os.path.exists(ALIYUN_CONFIG_FILE_PATH):
-        print(f"Aliyun Drive Uploader Node Error: Configuration file not found at {ALIYUN_CONFIG_FILE_PATH}")
-        print("Please create 'aliyundrive_config.json' with 'refresh_token' and 'folder_id'.")
-        return None
-
-    try:
-        with open(ALIYUN_CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
-            config_data = json.load(f)
-        
-        refresh_token = config_data.get("refresh_token")
-        folder_id = config_data.get("folder_id")
-
-        if not refresh_token:
-             print("Aliyun Drive Uploader Node Error: 'refresh_token' is missing or empty in config file.")
-             return None
-        if not folder_id:
-             print("Aliyun Drive Uploader Node Error: 'folder_id' is missing or empty in config file.")
-             return None
-        
-        print("Aliyun Drive Uploader Node: Configuration loaded successfully.")
-        return {
-            "refresh_token": refresh_token.strip(),
-            "folder_id": folder_id.strip()
-        }
-    except json.JSONDecodeError as e:
-        print(f"Aliyun Drive Uploader Node Error: Failed to parse config file JSON: {e}")
-        return None
-    except Exception as e:
-         print(f"Aliyun Drive Uploader Node Error: Unexpected error loading config: {e}")
-         traceback.print_exc()
-         return None
-
-def load_115_config():
-    """
-    Loads cookie and target_cid from the 115 config file.
-    Returns a dictionary with 'cookie' and 'target_cid' keys, or None if failed.
-    """
-    print(f"115 Uploader Node: Attempting to load config from {PAN115_CONFIG_FILE_PATH}")
-    if not os.path.exists(PAN115_CONFIG_FILE_PATH):
-        print(f"115 Uploader Node Error: Configuration file not found at {PAN115_CONFIG_FILE_PATH}")
-        print("Please create '115_config.json' with 'cookie' and 'target_cid'.")
-        return None
-
-    try:
-        with open(PAN115_CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
-            config_data = json.load(f)
-        
-        cookie = config_data.get("cookie")
-        target_cid = config_data.get("target_cid") # 115 uses 'cid' for folder IDs
-
-        if not cookie:
-             print("115 Uploader Node Error: 'cookie' is missing or empty in config file.")
-             return None
-        # target_cid can be None or empty string for root directory
-        # if not target_cid: 
-        #      print("115 Uploader Node Warning: 'target_cid' is missing or empty, will upload to root directory.")
-        
-        print("115 Uploader Node: Configuration loaded successfully.")
-        return {
-            "cookie": cookie.strip(),
-            "target_cid": target_cid.strip() if target_cid else None # Handle None or empty string
-        }
-    except json.JSONDecodeError as e:
-        print(f"115 Uploader Node Error: Failed to parse config file JSON: {e}")
-        return None
-    except Exception as e:
-         print(f"115 Uploader Node Error: Unexpected error loading config: {e}")
          traceback.print_exc()
          return None
 
@@ -337,7 +257,7 @@ class SimpleUploadToAliyunDrive:
             }
         } 
 
-# --- New 115 Node ---
+# --- New 115 Node (MODIFIED) ---
 class UploadTo115:
     """
     A ComfyUI node to upload an image to 115 Cloud using credentials from a config file.
@@ -360,7 +280,7 @@ class UploadTo115:
     OUTPUT_NODE = True
     FUNCTION = "process_and_upload"
     CATEGORY = "image/upload"
-    DESCRIPTION = "Uploads images to 115 Cloud using settings from 115_config.json. Acts as a preview node."
+    DESCRIPTION = "Uploads images to 115 Cloud using settings from uploader_configs.json. Acts as a preview node."
 
     def process_and_upload(self, images, file_name_prefix):
         """
@@ -393,7 +313,7 @@ class UploadTo115:
             print("115 Uploader Node: 115 configuration section missing in merged config.")
             return {"ui": {"images": []}}
 
-        cookie = config["cookie"]
+        cookie_str = config["cookie"]  # <-- 保持为字符串
         target_cid = config["target_cid"] # Can be None
 
         cloud_115 = None
@@ -403,25 +323,16 @@ class UploadTo115:
 
         try:
             print("115 Uploader Node: Initializing py115 client...")
-            # py115 Cloud expects a dictionary for cookies
-            # It might also accept a string, but dict is safer
-            cookie_dict = {}
-            for item in cookie.split(';'):
-                item = item.strip()
-                if '=' in item:
-                    key, value = item.split('=', 1)
-                    cookie_dict[key] = value
+            cloud_115 = Cloud()  # <-- 1. 创建空实例
+            print("115 Uploader Node: Attempting to log in...")
+
+            # 2. 登录
+            login_success = cloud_115.login(cookie_str)
+            if not login_success:
+                raise Exception("Login failed. Please check your cookie.")
+
+            print("115 Uploader Node: Login successful.")
             
-            cloud_115 = Cloud(cookie=cookie_dict)
-            print("115 Uploader Node: py115 client initialized successfully.")
-            
-            # Test login
-            user_info = cloud_115.get_user_info()
-            if user_info and 'data' in user_info:
-                 print(f"115 Uploader Node: Logged in as {user_info['data'].get('nickname', 'Unknown User')}")
-            else:
-                 print("115 Uploader Node Warning: Could not retrieve user info, but proceeding.")
-                 
         except Exception as e:
             print(f"115 Uploader Node Error: Failed to initialize py115 client or login: {e}")
             traceback.print_exc()
@@ -451,20 +362,20 @@ class UploadTo115:
                     print(f"115 Uploader Node: Temporary image saved.")
 
                     print(f"115 Uploader Node: Uploading '{filename}' to folder CID '{target_cid if target_cid else 'Root'}'...")
-                    # py115's upload method might vary, check documentation
-                    # Common pattern: upload(local_file_path, target_cid)
-                    # If target_cid is None, it uploads to root
-                    upload_result = cloud_115.upload_file(temp_file_path, target_cid)
-                    
-                    # Check if upload was successful based on py115 docs
-                    # This check might need adjustment
-                    if upload_result and 'state' in upload_result and upload_result['state']:
+
+                    # --- 上传文件 ---
+                    # py115 0.1.1 中上传方法是 .put(local_path, remote_path=None, pid=None)
+                    # 或者 .upload_file(local_path, pid=None)
+                    # 我们使用 .put()，因为它更通用
+                    upload_result = cloud_115.put(temp_file_path, pid=target_cid)
+
+                    # 检查上传结果
+                    if upload_result and isinstance(upload_result, dict) and upload_result.get('state', False):
                         print(f"115 Uploader Node: Successfully uploaded '{filename}'.")
                         successful_uploads += 1
                     else:
-                        # py115 might raise an exception on failure, or return a specific error structure
-                        print(f"115 Uploader Node: Warning - Upload call for '{filename}' might have failed. Result: {upload_result}")
-                        
+                        print(f"115 Uploader Node: Upload may have failed for '{filename}'. Result: {upload_result}")
+
                 except Exception as img_err:
                     print(f"115 Uploader Node Error processing image {i+1}: {img_err}")
                     traceback.print_exc()
