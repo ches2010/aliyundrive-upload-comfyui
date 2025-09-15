@@ -39,11 +39,15 @@ INSTALL_SUCCESS = install_dependencies()
 try:
     import requests
     from aligo import Aligo
-    # Import py115
-    from py115 import Cloud
+    try:
+        from py115 import Cloud
+    except ImportError:
+        from py115.cloud import Cloud  # 尝试从子模块导入
     DEPS_AVAILABLE = True
+    print("Uploader Nodes: All dependencies imported successfully.")
 except ImportError as e:
-    print(f"Custom Uploader Node: Critical Error - Could not import required libraries even after installation attempt: {e}")
+    print(f"Custom Uploader Node: Critical Error - Could not import required libraries: {e}")
+    traceback.print_exc()
     DEPS_AVAILABLE = False
 
 # --- 2. Configuration Handling ---
