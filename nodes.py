@@ -49,8 +49,61 @@ except ImportError as e:
 # --- 2. Configuration Handling ---
 # Define the path to the config files relative to this script's directory
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-ALIYUN_CONFIG_FILE_PATH = os.path.join(THIS_DIR, "aliyundrive_config.json")
-PAN115_CONFIG_FILE_PATH = os.path.join(THIS_DIR, "115_config.json") # New config file for 115
+# ALIYUN_CONFIG_FILE_PATH = os.path.join(THIS_DIR, "aliyundrive_config.json") # 删除或注释掉
+# PAN115_CONFIG_FILE_PATH = os.path.join(THIS_DIR, "115_config.json") # 删除或注释掉
+MERGED_CONFIG_FILE_PATH = os.path.join(THIS_DIR, "uploader_configs.json") # 新增
+
+# --- 替换或添加新的配置加载函数 ---
+def load_configs():
+    """
+    Loads configurations for all services from the merged config file.
+    Returns a dictionary with service names as keys and their configs as values, or None if failed.
+    """
+    print(f"Uploader Nodes: Attempting to load merged config from {MERGED_CONFIG_FILE_PATH}")
+    if not os.path.exists(MERGED_CONFIG_FILE_PATH):
+        print(f"Uploader Nodes Error: Merged configuration file not found at {MERGED_CONFIG_FILE_PATH}")
+        print("Please create 'uploader_configs.json' with 'aliyundrive' and 'pan115' sections.")
+        return None
+
+    try:
+        with open(MERGED_CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
+            full_config_data = json.load(f)
+        
+        aliyun_config = full_config_data.get("aliyundrive", {})
+        pan115_config = full_config_data.get("pan115", {})
+
+        # Basic validation for Aliyun
+        if not aliyun_config.get("refresh_token"):
+             print("Uploader Nodes Error: 'aliyundrive.refresh_token' is missing or empty in config file.")
+             return None
+        if not aliyun_config.get("folder_id"):
+             print("Uploader Nodes Error: 'aliyundrive.folder_id' is missing or empty in config file.")
+             return None
+
+        # Basic validation for 115 (cookie is mandatory)
+        if not pan115_config.get("cookie"):
+             print("Uploader Nodes Error: 'pan115.cookie' is missing or empty in config file.")
+             return None
+        # target_cid is optional, handled in the node logic
+
+        print("Uploader Nodes: Merged configuration loaded successfully.")
+        return {
+            "aliyundrive": {
+                "refresh_token": aliyun_config["refresh_token"].strip(),
+                "folder_id": aliyun_config["folder_id"].strip()
+            },
+            "pan115": {
+                "cookie": pan115_config["cookie"].strip(),
+                "target_cid": pan115_config.get("target_cid", "").strip() # Handle missing or empty
+            }
+        }
+    except json.JSONDecodeError as e:
+        print(f"Uploader Nodes Error: Failed to parse merged config file JSON: {e}")
+        return None
+    except Exception as e:
+         print(f"Uploader Nodes Error: Unexpected error loading merged config: {e}")
+         traceback.print_exc()
+         return None
 
 def load_aliyun_config():
     """
@@ -177,9 +230,13 @@ class SimpleUploadToAliyunDrive:
              print("Aliyun Drive Uploader Node: Image list is empty. Nothing to upload.")
              return {"ui": {"images": []}}
 
-        config = load_aliyun_config()
-        if not config:
+        configs = load_configs()
+        if not configs:
             print("Aliyun Drive Uploader Node: Upload process aborted due to configuration error.")
+            return {"ui": {"images": []}}
+        config = configs.get("aliyundrive")
+        if not config:
+            print("Aliyun Drive Uploader Node: Aliyun Drive configuration section missing in merged config.")
             return {"ui": {"images": []}}
 
         refresh_token = config["refresh_token"]
@@ -323,9 +380,13 @@ class UploadTo115:
              print("115 Uploader Node: Image list is empty. Nothing to upload.")
              return {"ui": {"images": []}}
 
-        config = load_115_config()
-        if not config:
+        configs = load_configs()
+        if not configs:
             print("115 Uploader Node: Upload process aborted due to configuration error.")
+            return {"ui": {"images": []}}
+        config = configs.get("pan115")
+        if not config:
+            print("115 Uploader Node: 115 configuration section missing in merged config.")
             return {"ui": {"images": []}}
 
         cookie = config["cookie"]
