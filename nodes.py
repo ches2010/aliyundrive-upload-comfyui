@@ -257,7 +257,7 @@ class SimpleUploadToAliyunDrive:
             }
         } 
 
-# --- New 115 Node (MODIFIED) ---
+# --- New 115 Node (MODIFIED - Updated for py115 v0.1.1) ---
 class UploadTo115:
     """
     A ComfyUI node to upload an image to 115 Cloud using credentials from a config file.
@@ -321,22 +321,42 @@ class UploadTo115:
              print("115 Uploader Node: Upload process aborted due to missing dependencies.")
              return {"ui": {"images": []}}
 
+        # --- 修改开始：适配 py115 v0.1.1 ---
         try:
             print("115 Uploader Node: Initializing py115 client...")
-            cloud_115 = Cloud()  # <-- 1. 创建空实例
-            print("115 Uploader Node: Attempting to log in...")
-
-            # 2. 登录
-            login_success = cloud_115.login(cookie_str)
-            if not login_success:
-                raise Exception("Login failed. Please check your cookie.")
-
-            print("115 Uploader Node: Login successful.")
             
+            # 1. 解析 Cookie 字符串
+            import http.cookies
+            cookie = http.cookies.SimpleCookie()
+            cookie.load(cookie_str)
+            cookie_dict = {key: morsel.value for key, morsel in cookie.items()}
+
+            # 2. 提取所需凭证
+            uid = cookie_dict.get('UID')
+            cid = cookie_dict.get('CID')
+            seid = cookie_dict.get('SEID')
+            kid = cookie_dict.get('KID') # KID might be optional, but included if present
+
+            if not all([uid, cid, seid]):
+                 raise ValueError("Cookie string is missing required fields: UID, CID, or SEID.")
+
+            # 3. 构造凭证字典
+            credential = {
+                'UID': uid,
+                'CID': cid,
+                'SEID': seid,
+                'KID': kid # Include KID if available
+            }
+
+            # 4. 使用凭证初始化 Cloud 对象 (登录在此步完成)
+            cloud_115 = Cloud(credential=credential)
+            print("115 Uploader Node: py115 client initialized and logged in successfully.")
+
         except Exception as e:
             print(f"115 Uploader Node Error: Failed to initialize py115 client or login: {e}")
             traceback.print_exc()
             return {"ui": {"images": []}}
+        # --- 修改结束 ---
 
         try:
             output_dir = folder_paths.get_output_directory()
@@ -369,10 +389,14 @@ class UploadTo115:
                     # 我们使用 .put()，因为它更通用
                     upload_result = cloud_115.put(temp_file_path, pid=target_cid)
 
-                    # 检查上传结果
+                    # 检查上传结果 (py115 0.1.1 的 put 方法返回值可能需要具体检查文档)
+                    # 假设成功时返回一个包含 'state': True 的字典
                     if upload_result and isinstance(upload_result, dict) and upload_result.get('state', False):
                         print(f"115 Uploader Node: Successfully uploaded '{filename}'.")
                         successful_uploads += 1
+                    elif upload_result is True: # Some versions might return True on success
+                         print(f"115 Uploader Node: Successfully uploaded '{filename}' (returned True).")
+                         successful_uploads += 1
                     else:
                         print(f"115 Uploader Node: Upload may have failed for '{filename}'. Result: {upload_result}")
 
